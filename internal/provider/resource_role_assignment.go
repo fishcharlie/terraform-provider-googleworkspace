@@ -175,6 +175,12 @@ func resourceRoleAssignmentRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	d.SetId(strconv.FormatInt(ra.RoleAssignmentId, 10))
+	// Google may return lowercase assignee types; canonical state avoids replacement on import.
+	assigneeType := strings.ToUpper(ra.AssigneeType)
+	if assigneeType != "USER" && assigneeType != "GROUP" {
+		return diag.Errorf("Role assignment returned an unsupported assignee type.")
+	}
+	d.Set("assignee_type", assigneeType)
 	d.Set("role_id", strconv.FormatInt(ra.RoleId, 10))
 	d.Set("etag", ra.Etag)
 	d.Set("assigned_to", ra.AssignedTo)

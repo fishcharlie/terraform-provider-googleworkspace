@@ -84,3 +84,30 @@ If you have other development questions we don't cover, please file an issue!
 
 ## General Feedback
 * How can we best support you ? - [feedback](https://forms.gle/XeqgPiFTtdevcRiu8)
+## Focused fork release
+
+The `0.12.1-fork.1` release uses upstream `SamuZad/googleworkspace` v0.12.0
+(commit `86f6d55fceb122c1d6b3c69d10b6753fdc49f877`) with a role-assignment
+refresh correction. It restores the API assignee type in state, normalizes USER
+and GROUP values, and rejects missing or unsupported types. Existing imports
+therefore converge without proposing assignment replacement.
+
+Tests use synthetic identifiers and an in-memory HTTP transport. This release
+introduces no tenant-specific configuration, credentials or access changes.
+Builds for Linux amd64/arm64 and macOS arm64 are distributed as versioned ZIP
+archives with SHA-256 checksums. The release has no registry entry or GPG
+signature; consumers must verify the published archive digests and provider lock
+hashes through an explicitly configured filesystem mirror. Existing upstream
+release workflows require their own signing credentials before being enabled.
+
+Build release archives from a clean committed checkout with Go 1.27.2:
+
+```sh
+python3 scripts/test-build-fork-release.py
+go test ./internal/provider -run '^TestRoleAssignmentRefresh' -count=1
+python3 scripts/build-fork-release.py --version 0.12.1-fork.1 --output /tmp/provider-release
+```
+
+The build helper never publishes. Review the source manifest and SHA-256 file
+before uploading assets to an immutable versioned release. A later release must
+use a new version and newly reviewed checksums; never replace published assets.

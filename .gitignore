@@ -36,3 +36,5 @@ website/vendor
 
 # Ignore the terraform provider binary
 /terraform-provider-googleworkspace
+# Release-helper tests must not publish machine-specific Python bytecode.
+scripts/__pycache__/

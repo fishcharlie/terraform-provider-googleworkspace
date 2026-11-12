@@ -68,7 +68,7 @@ FIELDS = {
 
 
 @contextlib.contextmanager
-def proxy(path, handler):
+def proxy(path, handler, hosts=("oauth2.googleapis.com", "gmail.googleapis.com")):
 	"""Trust only an ephemeral fixture CA inside the isolated Linux child processes."""
 	key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 	name = x509.Name(
@@ -88,7 +88,7 @@ def proxy(path, handler):
 			x509.SubjectAlternativeName(
 				[
 					x509.DNSName(host)
-					for host in ("oauth2.googleapis.com", "gmail.googleapis.com")
+					for host in hosts
 				]
 			),
 			critical=False,
@@ -112,10 +112,7 @@ def proxy(path, handler):
 			pass
 
 		def do_CONNECT(self):
-			if self.path not in {
-				"oauth2.googleapis.com:443",
-				"gmail.googleapis.com:443",
-			}:
+			if self.path not in {host + ":443" for host in hosts}:
 				self.send_error(403)
 				return
 			self.send_response(200)

@@ -132,7 +132,7 @@ func resourceOrgUnitCreate(ctx context.Context, d *schema.ResourceData, meta int
 	var orgUnit *directory.OrgUnit
 	orgUnit, err := orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return orgUnitDiagnostic(err)
 	}
 
 	d.SetId(orgUnit.OrgUnitId)
@@ -167,6 +167,10 @@ func resourceOrgUnitCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
 
+	if err != nil {
+		return orgUnitDiagnostic(err)
+	}
+
 	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
 
 	return resourceOrgUnitRead(ctx, d, meta)
@@ -194,7 +198,10 @@ func resourceOrgUnitRead(ctx context.Context, d *schema.ResourceData, meta inter
 		return
 	})
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+		if isNotFound(err) {
+			return handleNotFoundError(err, d, d.Id())
+		}
+		return orgUnitDiagnostic(err)
 	}
 
 	d.Set("name", orgUnit.Name)
@@ -236,11 +243,19 @@ func resourceOrgUnitUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		orgUnitObj.Name = d.Get("name").(string)
 	}
 
+	forceSendFields := []string{}
 	if d.HasChange("description") {
+		// Empty descriptions are intentional updates, not omitted JSON fields.
 		orgUnitObj.Description = d.Get("description").(string)
+		forceSendFields = append(forceSendFields, "Description")
 	}
 
-	forceSendFields := []string{}
+	// Send only the changed parent selector; the other one may be computed state.
+	if value, ok := d.GetOk("parent_org_unit_id"); ok && d.HasChange("parent_org_unit_id") {
+		orgUnitObj.ParentOrgUnitId = value.(string)
+	} else if value, ok := d.GetOk("parent_org_unit_path"); ok && d.HasChange("parent_org_unit_path") {
+		orgUnitObj.ParentOrgUnitPath = value.(string)
+	}
 
 	if d.HasChange("block_inheritance") {
 		orgUnitObj.BlockInheritance = d.Get("block_inheritance").(bool)
@@ -249,24 +264,21 @@ func resourceOrgUnitUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 	orgUnitObj.ForceSendFields = forceSendFields
 
-	if &orgUnitObj != new(directory.OrgUnit) {
-		orgUnit, err := orgUnitsService.Update(client.Customer, d.Id(), &orgUnitObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		d.SetId(orgUnit.OrgUnitId)
+	orgUnit, err := orgUnitsService.Update(client.Customer, d.Id(), &orgUnitObj).Do()
+	if err != nil {
+		return orgUnitDiagnostic(err)
 	}
+	d.SetId(orgUnit.OrgUnitId)
 
 	numInserts := 1
 	// UPDATE will respond with the Org Unit that will be updated, however, it is eventually consistent
 	// After UPDATE, the etag is updated along with the Org Unit, once we get a consistent etag,
 	// we can feel confident that our Org Unit is also consistent
 	cc := consistencyCheck{
-		resourceType: "group",
+		resourceType: "org unit",
 		timeout:      d.Timeout(schema.TimeoutUpdate),
 	}
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
 		var retryErr error
 
 		if cc.reachedConsistency(numInserts) {
@@ -286,7 +298,7 @@ func resourceOrgUnitUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	})
 
 	if err != nil {
-		return diag.FromErr(err)
+		return orgUnitDiagnostic(err)
 	}
 
 	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
@@ -315,10 +327,21 @@ func resourceOrgUnitDelete(ctx context.Context, d *schema.ResourceData, meta int
 
 	err := orgUnitsService.Delete(client.Customer, d.Id()).Do()
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+		if isNotFound(err) {
+			return handleNotFoundError(err, d, d.Id())
+		}
+		return orgUnitDiagnostic(err)
 	}
 
 	log.Printf("[DEBUG] Finished deleting OrgUnit %q: %#v", d.Id(), ouName)
 
 	return diags
+}
+
+// orgUnitDiagnostic never forwards remote messages that may echo credentials.
+func orgUnitDiagnostic(err error) diag.Diagnostics {
+	if err == nil {
+		return nil
+	}
+	return diag.Errorf("Directory organizational unit operation failed; verify tenant, permissions and API availability.")
 }

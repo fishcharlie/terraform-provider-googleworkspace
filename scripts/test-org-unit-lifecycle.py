@@ -51,6 +51,8 @@ def main():
 				if self.headers.get('Authorization') != 'Bearer ' + secret: return self.reply(401, {'error': {'code': 401, 'message': 'expired ' + secret}})
 				if mode['denied']: return self.reply(403, {'error': {'code': 403, 'message': 'denied ' + secret}})
 				identifier = resource.removeprefix(prefix).lstrip('/')
+				if self.command == 'GET' and identifier not in remote:
+					identifier = next((key for key, row in remote.items() if row['orgUnitPath'].lstrip('/') == identifier), identifier)
 				if self.command == 'GET':
 					if identifier in mode['pending']:
 						mode['pending'].remove(identifier)
@@ -90,7 +92,7 @@ def main():
 		config = {
 			'terraform': {'required_providers': {'googleworkspace': {'source': 'fishcharlie/googleworkspace', 'version': args.version}}, 'encryption': {'key_provider': {'pbkdf2': {'fixture': {'passphrase': 'fixture-only-encryption-passphrase-12345'}}}, 'method': {'aes_gcm': {'fixture': {'keys': '${key_provider.pbkdf2.fixture}'}}}, 'state': {'method': 'method.aes_gcm.fixture', 'enforced': True}, 'plan': {'method': 'method.aes_gcm.fixture', 'enforced': True}}},
 			'provider': {'googleworkspace': {'customer_id': 'C01234567'}},
-			'data': {'googleworkspace_org_unit': {'root': {'org_unit_id': 'id:root'}}},
+			'data': {'googleworkspace_org_unit': {'root': {'org_unit_id': 'id:root'}, 'by_path': {'org_unit_path': '/First Ω'}}},
 			'resource': {'googleworkspace_org_unit': {'existing': {'for_each': {key: {'name': row['name'], 'description': row['description'], 'parent_id': row['parentOrgUnitId']} for key, row in remote.items() if key != 'id:root'}, 'name': '${each.value.name}', 'description': '${each.value.description}', 'parent_org_unit_id': '${each.value.parent_id}', 'block_inheritance': False, 'lifecycle': {'prevent_destroy': True}}}},
 			'import': [{'for_each': {key: key for key in remote if key != 'id:root'}, 'to': 'googleworkspace_org_unit.existing[each.key]', 'id': '${each.value}'}],
 		}

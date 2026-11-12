@@ -19,7 +19,7 @@ blockInheritance API field does not represent current policy inheritance.
 | Preserve import/refresh and stable IDs | Existing OU callbacks/schema | Actual encrypted OpenTofu import and clean refresh against synthetic HTTPS API | Production import-only plan and clean follow-up required by consumer |
 | Apply parent-ID/path moves and clear descriptions | OU updater, typed Google SDK | Before-fix SDK fixture loses both fields; corrected request/SDK lifecycle and native provider update converge | No production move or description update authorized by this fix |
 | Fail correctly on eventual consistency or denied access | Create/read/update callbacks | SDK create-consistency denial; native first-read404, permission denial and expired token | No guessed absence or duplicate-create recovery |
-| Preserve credential privacy | OU diagnostic boundary | Synthetic echoed-secret denial never appears in provider diagnostics | Debug logging is not a supported credential-safe mode |
+| Preserve credential privacy | OU diagnostic boundary | ID- and path-selector data sources and resource callbacks reject synthetic echoed-secret denials without exposing remote bodies | Debug logging is not a supported credential-safe mode |
 | Correct deletion and critical identity protection | Existing delete callback; consumer lifecycle | Native provider delete, refresh and protected-resource destruction rejection | Fixture deletion only; no tenant OU deletion authorized |
 | Generic reproducible release | Existing deterministic builder | Three-platform builds independently reproduced, exact Linux artifact lifecycle | Requires separate source/release publication authorization; no tenant data belongs in this repository |
 

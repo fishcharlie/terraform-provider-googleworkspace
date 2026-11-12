@@ -121,3 +121,29 @@ func TestOrgUnitFailureRedaction(t *testing.T) {
 		}
 	}
 }
+
+// TestOrgUnitDataSourceFailureRedaction covers both supported lookup selectors.
+func TestOrgUnitDataSourceFailureRedaction(t *testing.T) {
+	for _, field := range []string{"org_unit_id", "org_unit_path"} {
+		t.Run(field, func(t *testing.T) {
+			definition := dataSourceOrgUnit()
+			value := "id:child"
+			if field == "org_unit_path" {
+				value = "/Child"
+			}
+			data := schema.TestResourceDataRaw(t, definition.Schema, map[string]interface{}{field: value})
+			client := &apiClient{Customer: "C01234567", client: &http.Client{Transport: orgUnitFixture(func(request *http.Request) (*http.Response, error) {
+				return orgUnitResponse(403, `{"error":{"code":403,"message":"synthetic-secret"}}`), nil
+			})}}
+			diagnostics := definition.ReadContext(context.Background(), data, client)
+			if !diagnostics.HasError() {
+				t.Fatal("lookup denial accepted")
+			}
+			for _, diagnostic := range diagnostics {
+				if strings.Contains(diagnostic.Summary+diagnostic.Detail, "synthetic-secret") {
+					t.Fatal("lookup exposed remote body")
+				}
+			}
+		})
+	}
+}

@@ -51,7 +51,7 @@ func dataSourceOrgUnitRead(ctx context.Context, d *schema.ResourceData, meta int
 
 		orgUnit, err := orgUnitsService.Get(client.Customer, ouPath).Do()
 		if err != nil {
-			return diag.FromErr(err)
+			return orgUnitDiagnostic(err)
 		}
 
 		if orgUnit == nil {

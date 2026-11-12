@@ -53,6 +53,7 @@ func New(version string) func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
 				"access_token": {
+					Sensitive: true,
 					Description: "A temporary [OAuth 2.0 access token] obtained from " +
 						"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
 						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
@@ -66,6 +67,7 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"credentials": {
+					Sensitive: true,
 					Description: "Either the path to or the contents of a service account key file in JSON format " +
 						"you can manage key files using the Cloud Console).  If not provided, the application default " +
 						"credentials will be used.",
@@ -133,21 +135,26 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_dynamic_group":        dataSourceDynamicGroup(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
-				"googleworkspace_chrome_policy":       resourceChromePolicy(),
-				"googleworkspace_domain":              resourceDomain(),
-				"googleworkspace_domain_alias":        resourceDomainAlias(),
-				"googleworkspace_gmail_send_as_alias": resourceGmailSendAsAlias(),
-				"googleworkspace_group":               resourceGroup(),
-				"googleworkspace_group_member":        resourceGroupMember(),
-				"googleworkspace_group_members":       resourceGroupMembers(),
-				"googleworkspace_group_settings":      resourceGroupSettings(),
-				"googleworkspace_org_unit":            resourceOrgUnit(),
-				"googleworkspace_role":                resourceRole(),
-				"googleworkspace_role_assignment":     resourceRoleAssignment(),
-				"googleworkspace_schema":              resourceSchema(),
-				"googleworkspace_user":                resourceUser(),
-				"googleworkspace_dynamic_group":       resourceDynamicGroup(),
-				"googleworkspace_user_delegate":       resourceUserDelegate(),
+				"googleworkspace_gmail_imap":            resourceGmailSetting("imap"),
+				"googleworkspace_gmail_pop":             resourceGmailSetting("pop"),
+				"googleworkspace_gmail_language":        resourceGmailSetting("language"),
+				"googleworkspace_gmail_auto_forwarding": resourceGmailSetting("auto_forwarding"),
+				"googleworkspace_gmail_vacation":        resourceGmailSetting("vacation"),
+				"googleworkspace_chrome_policy":         resourceChromePolicy(),
+				"googleworkspace_domain":                resourceDomain(),
+				"googleworkspace_domain_alias":          resourceDomainAlias(),
+				"googleworkspace_gmail_send_as_alias":   resourceGmailSendAsAlias(),
+				"googleworkspace_group":                 resourceGroup(),
+				"googleworkspace_group_member":          resourceGroupMember(),
+				"googleworkspace_group_members":         resourceGroupMembers(),
+				"googleworkspace_group_settings":        resourceGroupSettings(),
+				"googleworkspace_org_unit":              resourceOrgUnit(),
+				"googleworkspace_role":                  resourceRole(),
+				"googleworkspace_role_assignment":       resourceRoleAssignment(),
+				"googleworkspace_schema":                resourceSchema(),
+				"googleworkspace_user":                  resourceUser(),
+				"googleworkspace_dynamic_group":         resourceDynamicGroup(),
+				"googleworkspace_user_delegate":         resourceUserDelegate(),
 			},
 		}
 
@@ -231,7 +238,7 @@ func validateCredentials(v interface{}, p cty.Path) diag.Diagnostics {
 	if _, err := googleoauth.CredentialsFromJSON(context.Background(), []byte(creds)); err != nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
-			Summary:       fmt.Sprintf("JSON credentials in %q are not valid: %s", creds, err),
+			Summary:       "JSON credentials are invalid; verify the service-account file or JSON format",
 			AttributePath: p,
 		})
 	}

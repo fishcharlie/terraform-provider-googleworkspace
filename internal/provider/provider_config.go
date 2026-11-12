@@ -90,7 +90,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 	if c.Credentials != "" {
 		contents, _, err := pathOrContents(c.Credentials)
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("Google credentials could not be loaded; verify authentication configuration.")
 		}
 
 		credParams := googleoauth.CredentialsParams{
@@ -100,7 +100,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 		creds, err := googleoauth.CredentialsFromJSONWithParams(ctx, []byte(contents), credParams)
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("Google credentials could not be loaded; verify authentication configuration.")
 		}
 
 		diags = c.SetupClient(ctx, creds)
@@ -112,7 +112,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 		creds, err := googleoauth.FindDefaultCredentialsWithParams(ctx, credParams)
 		if err != nil {
-			return diag.FromErr(err)
+			return diag.Errorf("Google credentials could not be loaded; verify authentication configuration.")
 		}
 
 		diags = c.SetupClient(ctx, creds)

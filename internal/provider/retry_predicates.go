@@ -72,7 +72,7 @@ const connectionResetByPeerErr = ": connection reset by peer"
 
 func isConnectionResetNetworkError(err error) (bool, string) {
 	if strings.HasSuffix(err.Error(), connectionResetByPeerErr) {
-		return true, fmt.Sprintf("reset connection error: %v", err)
+		return true, "reset connection error"
 	}
 	return false, ""
 }
@@ -86,12 +86,12 @@ func isCommonRetryableErrorCode(err error) (bool, string) {
 	}
 
 	if gerr.Code == 500 || gerr.Code == 502 || gerr.Code == 503 {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
 
 	if gerr.Code == 401 && strings.Contains(gerr.Body, "Login Required") {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
 
@@ -102,7 +102,7 @@ func isCommonRetryableErrorCode(err error) (bool, string) {
 	// - trying to modify certain fields on an admin user without domain-wide delegation
 	// - trying to undertake operations without the correct permissions
 	if gerr.Code == 403 && strings.Contains(gerr.Body, "Not Authorized to access this resource/api") {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
 	return false, ""
@@ -115,12 +115,12 @@ func isRateLimitExceeded(err error) (bool, string) {
 	}
 
 	if gerr.Code == 429 {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
 
 	if gerr.Code == 403 && (strings.Contains(gerr.Error(), "Quota exceeded") || strings.Contains(gerr.Error(), "quotaExceeded")) {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
 
@@ -144,12 +144,12 @@ func isConcurrentUpdateError(err error) (bool, string) {
 	}
 
 	if gerr.Code == 412 {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code (concurrent update): %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on concurrent update code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable concurrent update error code %d", gerr.Code)
 	}
 
 	if gerr.Code == 400 && strings.Contains(gerr.Body, "Invalid Input: resource_id") {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code (propagating resource_id): %s", err)
+		log.Printf("[DEBUG] Dismissed an error as retryable based on propagating resource code: %d", gerr.Code)
 		return true, fmt.Sprintf("Retryable concurrent update error code %d", gerr.Code)
 	}
 

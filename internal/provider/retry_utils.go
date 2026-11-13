@@ -71,8 +71,9 @@ func isRetryableError(topErr error, customPredicates ...RetryErrorPredicateFunc)
 	isRetryable := false
 	errwrap.Walk(topErr, func(werr error) {
 		for _, pred := range retryPredicates {
-			if predRetry, predReason := pred(werr); predRetry {
-				log.Printf("[DEBUG] Dismissed an error as retryable. %s - %s", predReason, werr)
+			// Predicate explanations and wrapped errors may contain remote secrets.
+			if predRetry, _ := pred(werr); predRetry {
+				log.Printf("[DEBUG] Dismissed an error as retryable")
 				isRetryable = true
 				return
 			}

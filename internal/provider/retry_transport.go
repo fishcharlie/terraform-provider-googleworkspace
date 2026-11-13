@@ -58,7 +58,8 @@ func (t *retryTransport) RoundTrip(req *http.Request) (resp *http.Response, resp
 	// we do this before the actual Retry loop so we can consume the request Body as needed
 	// e.g. if the request couldn't be retried, we use the original request
 	if _, err := httputil.DumpRequestOut(req, true); err != nil {
-		log.Printf("[WARN] Retry Transport: Consuming original request body failed: %v", err)
+		// Request-body errors can embed private content; retain only the failure stage.
+		log.Printf("[WARN] Retry Transport: Consuming original request body failed; details withheld")
 	}
 
 	log.Printf("[DEBUG] Retry Transport: starting RoundTrip retry loop")
@@ -69,7 +70,7 @@ Retry:
 		// If we can't copy the request, we run as a single request.
 		newRequest, copyErr := copyHttpRequest(req)
 		if copyErr != nil {
-			log.Printf("[WARN] Retry Transport: Unable to copy request body: %v.", copyErr)
+			log.Printf("[WARN] Retry Transport: Unable to copy request body; details withheld")
 			log.Printf("[WARN] Retry Transport: Running request as non-retryable")
 			resp, respErr = t.internal.RoundTrip(req)
 			break Retry
@@ -86,7 +87,8 @@ Retry:
 			break Retry
 		}
 		if !retryErr.Retryable {
-			log.Printf("[DEBUG] Retry Transport: Stopping retries, last request failed with non-retryable error: %s", retryErr.Err)
+			// Remote error messages are not trusted diagnostic metadata.
+			log.Printf("[DEBUG] Retry Transport: Stopping retries after a non-retryable failure; details withheld")
 			break Retry
 		}
 
